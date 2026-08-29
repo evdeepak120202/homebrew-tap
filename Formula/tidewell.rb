@@ -34,19 +34,24 @@ class Tidewell < Formula
 
     prefix.install "build/Tidewell.app"
 
-    # A formula only links *binaries* into the prefix, so without this the app exists but
-    # Spotlight, Launchpad and the Applications folder never see it — which for a Mac app
-    # reads as "the install did nothing".
-    #
-    # The link points at `opt_prefix`, not the versioned Cellar path: opt is stable across
-    # upgrades, so the folder-access grants and login-item registration macOS ties to the
-    # bundle path survive a `brew upgrade` instead of resetting every time.
-    # `Dir.home` is a String, so it needs wrapping before Pathname's `/` works.
+    bin.write_exec_script "#{prefix}/Tidewell.app/Contents/MacOS/Tidewell"
+  end
+
+  # A formula only links *binaries* into the prefix, so without this the bundle sits in
+  # the Cellar where Spotlight, Launchpad and Finder never see it — which for a Mac app
+  # reads as the install having done nothing.
+  #
+  # This has to happen in `post_install`, not `install`: Homebrew sandboxes the install
+  # phase and blocks writes outside the formula's own prefix, so an `ln_sf` there is
+  # silently skipped.
+  #
+  # The link targets `opt_prefix` rather than the versioned Cellar path, so it stays valid
+  # across upgrades — and the folder-access grants macOS ties to a bundle path are not
+  # reset every time you `brew upgrade`.
+  def post_install
     user_apps = Pathname.new(Dir.home)/"Applications"
     user_apps.mkpath
     ln_sf opt_prefix/"Tidewell.app", user_apps/"Tidewell.app"
-
-    bin.write_exec_script "#{prefix}/Tidewell.app/Contents/MacOS/Tidewell"
   end
 
   def caveats
